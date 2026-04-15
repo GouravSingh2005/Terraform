@@ -1,7 +1,7 @@
 # ================= IAM =================
 
 resource "aws_iam_role" "ec2_role" {
-  name = "${var.project_name}-${var.environment}-ec2-role"
+  name_prefix = "${var.project_name}-${var.environment}-ec2-role-"
 
   assume_role_policy = <<EOF
 {
@@ -23,8 +23,8 @@ resource "aws_iam_role_policy_attachment" "ssm_managed_ec2" {
 }
 
 resource "aws_iam_instance_profile" "ec2" {
-  name = "${var.project_name}-${var.environment}-ec2-profile"
-  role = aws_iam_role.ec2_role.name
+  name_prefix = "${var.project_name}-${var.environment}-ec2-profile-"
+  role        = aws_iam_role.ec2_role.name
 }
 
 # ================= ALB =================
@@ -36,11 +36,6 @@ resource "aws_lb" "web_alb" {
   subnets            = var.public_subnet_ids
 
   enable_deletion_protection = false
-
-  access_logs {
-    bucket  = var.bucket_name
-    enabled = true
-  }
 }
 
 # ================= TARGET GROUPS =================
@@ -70,7 +65,7 @@ resource "aws_lb_target_group" "backend_tg" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/api/health"   # 🔥 IMPORTANT
+    path                = "/api/health" # 🔥 IMPORTANT
     port                = "5000"
     interval            = 30
     timeout             = 5
@@ -123,7 +118,7 @@ resource "aws_launch_template" "ec2_app_lt" {
 
   network_interfaces {
     security_groups             = [var.ec2_sg_id]
-    associate_public_ip_address = false   # 🔥 ensure NAT gateway exists
+    associate_public_ip_address = false # 🔥 ensure NAT gateway exists
   }
 
   user_data = base64encode(templatefile("${path.module}/userdata.sh", {

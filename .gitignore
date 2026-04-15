@@ -5,7 +5,12 @@
 **/.terraform/
 **/terraform.tfstate
 **/terraform.tfstate.backup
+**/terraform.tfstate.*.backup
+**/.terraform.tfstate.lock.info
 **/terraform.tfvars
+
+# Generated build artifacts
+infra/modules/Lambda/function.zip
 
 # Env files
 **/.env

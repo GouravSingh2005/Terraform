@@ -1,5 +1,8 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_s3_bucket" "my_bucket" {
-  bucket = "${lower(var.environment)}-${var.bucket}"
+  bucket        = "${lower(var.environment)}-${var.bucket}-${data.aws_caller_identity.current.account_id}"
+  force_destroy = true
 
   tags = merge(var.common_tags, {
     Name        = "${lower(var.environment)}-s3-bucket"
@@ -59,18 +62,4 @@ data "aws_iam_policy_document" "allow_read_only_access" {
     ]
   }
 
-  statement {
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-
-    actions = [
-      "s3:GetObject",
-    ]
-
-    resources = [
-      "${aws_s3_bucket.my_bucket.arn}/resized/*",
-    ]
-  }
 }
