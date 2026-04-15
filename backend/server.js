@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.prod" });
+dotenv.config(); // ✅ FIXED (no .env.prod)
 
 import express from "express";
 import cors from "cors";
@@ -21,25 +21,20 @@ process.on("unhandledRejection", (err) => {
   console.error("UNHANDLED REJECTION 💥", err);
 });
 
-// Prevent terminal job-control signals from stopping the server.
-// This keeps the process running even if the terminal sends TSTP/HUP.
-const ignoreSignal = (signal) => {
-  process.on(signal, () => {
-    console.warn(`Ignored ${signal} to keep server running`);
-  });
-};
-
-["SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGHUP"].forEach(ignoreSignal);
-
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// ✅ DEBUG ROUTE (IMPORTANT)
+app.get("/", (req, res) => {
+  res.send("Backend working 🚀");
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 
-// Debug
+// Debug env
 console.log("DB_USER:", process.env.DB_USER);
 console.log("DB_PASSWORD:", process.env.DB_PASSWORD);
 
@@ -55,7 +50,7 @@ const startServer = async () => {
     const redisOk = await ensureRedis();
     console.log(redisOk ? "Redis connected ✅" : "Redis unavailable ⚠️");
 
-    app.listen(5000, () => {
+    app.listen(5000, "0.0.0.0", () => {
       console.log("Server running 🚀 on port 5000");
     });
   } catch (err) {

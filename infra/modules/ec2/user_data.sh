@@ -1,22 +1,28 @@
 #!/bin/bash
 
 
-apt  update -y
-apt install -y docker.io awscli
+apt update -y
 
+
+apt install -y docker.io
 systemctl start docker
 systemctl enable docker
 
-usermod -aG docker ec2-user
+
+snap install aws-cli --classic
+
+
+usermod -aG docker ubuntu
+
+
+sleep 10
 
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION="${region}"
 
 
-# CREATE .env FILE
-
-cat <<EOF > /home/ec2-user/.env
+cat <<EOF > /home/ubuntu/.env
 DB_HOST=${rds_endpoint}
 DB_PORT=3306
 DB_USER=admin
@@ -41,7 +47,6 @@ $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
 docker rm -f backend || true
 docker rm -f frontend || true
 
-
 docker pull $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/backend:latest
 docker pull $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/frontend:latest
 
@@ -50,7 +55,7 @@ docker run -d \
   --name backend \
   --restart always \
   -p 5000:5000 \
-  --env-file /home/ec2-user/.env \
+  --env-file /home/ubuntu/.env \
   $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/backend:latest
 
 
