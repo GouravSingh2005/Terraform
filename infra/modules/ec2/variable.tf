@@ -41,3 +41,16 @@ variable "project_name" {
   description = "Project name"
   type        = string
 }
+variable "rds_endpoint" {
+  type = string
+}
+variable "redis_host" {
+  type = string
+}
+variable "bucket_name" {
+  type = string
+}
+
+variable "region" {
+  type = string
+}

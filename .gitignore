@@ -10,3 +10,9 @@
 # Env files
 **/.env
 **/.env.*
+
+# Node modules
+**/node_modules/
+
+# Zip artifacts
+**/*.zip

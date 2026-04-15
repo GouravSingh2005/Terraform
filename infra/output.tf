@@ -166,3 +166,10 @@ output "nat_gateway_ids" {
   description = "NAT Gateway IDs"
   value       = module.vpc.nat_gateway_ids
 }
+output "lambda_function_name" {
+  value = module.lambda.lambda_function_name
+}
+
+output "lambda_arn" {
+  value = module.lambda.lambda_arn
+}

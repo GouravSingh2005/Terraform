@@ -1,4 +1,7 @@
+# ================================
 # IAM ROLE
+# ================================
+
 resource "aws_iam_role" "ec2_role" {
   name = "${var.project_name}-${var.environment}-ec2-role"
 
@@ -23,9 +26,22 @@ EOF
   })
 }
 
+# SSM access
 resource "aws_iam_role_policy_attachment" "ssm_managed_ec2" {
   role       = aws_iam_role.ec2_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# ECR pull access
+resource "aws_iam_role_policy_attachment" "ecr_read" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+# 🔥 ADD THIS (for fetching secrets later)
+resource "aws_iam_role_policy_attachment" "ssm_read" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
 }
 
 resource "aws_iam_instance_profile" "ec2" {
@@ -38,8 +54,10 @@ resource "aws_iam_instance_profile" "ec2" {
   })
 }
 
-
+# ================================
 # LOAD BALANCER (ALB)
+# ================================
+
 resource "aws_lb" "web_alb" {
   name               = "${var.project_name}-${var.environment}-alb"
   internal           = false
@@ -54,8 +72,10 @@ resource "aws_lb" "web_alb" {
   })
 }
 
-
+# ================================
 # TARGET GROUP
+# ================================
+
 resource "aws_lb_target_group" "app_tg" {
   name     = "${var.project_name}-${var.environment}-tg"
   port     = 80
@@ -77,8 +97,10 @@ resource "aws_lb_target_group" "app_tg" {
   })
 }
 
-
+# ================================
 # LISTENER
+# ================================
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.web_alb.arn
   port              = 80
@@ -90,8 +112,10 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-
+# ================================
 # LAUNCH TEMPLATE
+# ================================
+
 resource "aws_launch_template" "ec2_app_lt" {
   name_prefix   = "${var.project_name}-${var.environment}-app-"
   image_id      = var.ami
@@ -100,6 +124,14 @@ resource "aws_launch_template" "ec2_app_lt" {
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2.name
   }
+
+  # 🔥 FIXED (dynamic values inject)
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    rds_endpoint = var.rds_endpoint
+    redis_host   = var.redis_host
+    bucket_name  = var.bucket_name
+    region       = var.region
+  }))
 
   network_interfaces {
     security_groups = [var.ec2_sg_id]
@@ -120,8 +152,10 @@ resource "aws_launch_template" "ec2_app_lt" {
   })
 }
 
-
+# ================================
 # AUTO SCALING GROUP
+# ================================
+
 resource "aws_autoscaling_group" "web" {
   desired_capacity = 1
   max_size         = 1
@@ -149,8 +183,10 @@ resource "aws_autoscaling_group" "web" {
   }
 }
 
-
+# ================================
 # AUTO SCALING POLICY
+# ================================
+
 resource "aws_autoscaling_policy" "cpu_target" {
   name                   = "${var.project_name}-${var.environment}-cpu-policy"
   autoscaling_group_name = aws_autoscaling_group.web.name

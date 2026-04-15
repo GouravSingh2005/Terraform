@@ -32,6 +32,10 @@ module "ec2" {
 
   ami           = var.ami
   instance_type = var.instance_type
+  rds_endpoint  = module.rds.rds_endpoint
+  redis_host    = module.elastcache.elasticache_cluster_address
+  bucket_name   = module.s3.s3_bucket_name
+  region        = var.aws_region
 
   environment  = var.environment
   common_tags  = var.common_tags
@@ -74,4 +78,21 @@ module "elastcache" {
   ec_sg_id = aws_security_group.sg.id
   num_cache_nodes = var.num_cache_nodes
  para_name = var.para_name
+}
+
+module "lambda" {
+  source = "./modules/lambda"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  lambda_function_name = var.lambda_function_name
+  lambda_zip_path      = var.lambda_zip_path
+
+  s3_bucket_name = module.s3.s3_bucket_name
+
+  redis_host = module.elastcache.elasticache_cluster_address
+  redis_port = module.elastcache.elasticache_cluster_port
+
+  aws_region = var.aws_region
 }

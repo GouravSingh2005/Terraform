@@ -1,0 +1,63 @@
+# ======================
+# Node modules
+# ======================
+node_modules/
+
+# ======================
+# Logs
+# ======================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ======================
+# Environment files
+# ======================
+.env
+.env.*
+!.env.example
+
+# ======================
+# OS files
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# IDE files
+# ======================
+.vscode/
+.idea/
+
+# ======================
+# Build / zip files
+# ======================
+dist/
+build/
+*.zip
+
+# ======================
+# Terraform (if inside repo)
+# ======================
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# ======================
+# AWS SAM / Serverless
+# ======================
+.aws-sam/
+.serverless/
+
+# ======================
+# Coverage / testing
+# ======================
+coverage/
+
+# ======================
+# Misc
+# ======================
+*.swp
+*.bak

@@ -1,23 +1,47 @@
 version: 0.2
 
+env:
+  variables:
+    AWS_REGION: ap-southeast-1
+    BACKEND_REPO: backend
+    FRONTEND_REPO: frontend
+
 phases:
   pre_build:
     commands:
-      - echo Logging in to ECR
-      - aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com
+      - echo Getting AWS Account ID...
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
+      - REPO_URI_BACKEND=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$BACKEND_REPO
+      - REPO_URI_FRONTEND=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$FRONTEND_REPO
+
+      - echo Logging in to ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
   build:
     commands:
-      - echo Building backend
-      - docker build -t backend ./backend
-      - docker tag backend:latest 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/backend:latest
+      - echo Building backend...
+      - docker build -t $BACKEND_REPO ./backend
+      - docker tag $BACKEND_REPO:latest $REPO_URI_BACKEND:latest
 
-      - echo Building frontend
-      - docker build -t frontend ./frontend
-      - docker tag frontend:latest 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/frontend:latest
+      - echo Building frontend...
+      - docker build -t $FRONTEND_REPO ./frontend
+      - docker tag $FRONTEND_REPO:latest $REPO_URI_FRONTEND:latest
 
   post_build:
     commands:
-      - echo Pushing images
-      - docker push 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/backend:latest
-      - docker push 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/frontend:latest
+      - echo Pushing images...
+      - docker push $REPO_URI_BACKEND:latest
+      - docker push $REPO_URI_FRONTEND:latest
+
+      - echo Fetching ASG name...
+      - ASG_NAME=$(aws autoscaling describe-auto-scaling-groups \
+          --query "AutoScalingGroups[0].AutoScalingGroupName" \
+          --output text)
+
+      - echo "ASG NAME: $ASG_NAME"
+
+     
+      - echo "Starting instan"
+      - aws autoscaling start-instance-refresh \
+          --auto-scaling-group-name $ASG_NAME
