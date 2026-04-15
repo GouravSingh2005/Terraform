@@ -1,8 +1,8 @@
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
-// 🔥 ensure env yahi load ho
-dotenv.config({ path: ".env.local" });
+
+dotenv.config({ path: ".env.prod" });
 
 console.log("DB DEBUG:", {
   user: process.env.DB_USER,
