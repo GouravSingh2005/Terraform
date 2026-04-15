@@ -41,3 +41,33 @@ variable "project_name" {
   description = "Project name"
   type        = string
 }
+
+variable "rds_endpoint" {
+  description = "RDS endpoint for userdata"
+  type        = string
+}
+
+variable "bucket_name" {
+  description = "S3 bucket name for userdata"
+  type        = string
+}
+
+variable "redis_host" {
+  description = "Redis endpoint for userdata"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "AWS region for userdata"
+  type        = string
+}
+
+variable "backend_repo_url" {
+  description = "Backend ECR repository URL"
+  type        = string
+}
+
+variable "frontend_repo_url" {
+  description = "Frontend ECR repository URL"
+  type        = string
+}

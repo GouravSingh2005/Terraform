@@ -1,4 +1,5 @@
-# IAM ROLE
+# ================= IAM =================
+
 resource "aws_iam_role" "ec2_role" {
   name = "${var.project_name}-${var.environment}-ec2-role"
 
@@ -8,19 +9,12 @@ resource "aws_iam_role" "ec2_role" {
   "Statement": [
     {
       "Effect": "Allow",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
+      "Principal": { "Service": "ec2.amazonaws.com" },
       "Action": "sts:AssumeRole"
     }
   ]
 }
 EOF
-
-  tags = merge(var.common_tags, {
-    Name        = "${var.project_name}-${var.environment}-ec2-role"
-    Environment = var.environment
-  })
 }
 
 resource "aws_iam_role_policy_attachment" "ssm_managed_ec2" {
@@ -31,67 +25,76 @@ resource "aws_iam_role_policy_attachment" "ssm_managed_ec2" {
 resource "aws_iam_instance_profile" "ec2" {
   name = "${var.project_name}-${var.environment}-ec2-profile"
   role = aws_iam_role.ec2_role.name
-
-  tags = merge(var.common_tags, {
-    Name        = "${var.project_name}-${var.environment}-ec2-profile"
-    Environment = var.environment
-  })
 }
 
+# ================= ALB =================
 
-# LOAD BALANCER (ALB)
 resource "aws_lb" "web_alb" {
   name               = "${var.project_name}-${var.environment}-alb"
-  internal           = false
   load_balancer_type = "application"
   security_groups    = [var.alb_sg_id]
-
-  subnets = var.public_subnet_ids
-
-  tags = merge(var.common_tags, {
-    Name        = "${var.project_name}-${var.environment}-alb"
-    Environment = var.environment
-  })
+  subnets            = var.public_subnet_ids
 }
 
+# ================= TARGET GROUPS =================
 
-# TARGET GROUP
-resource "aws_lb_target_group" "app_tg" {
-  name     = "${var.project_name}-${var.environment}-tg"
+# Frontend
+resource "aws_lb_target_group" "frontend_tg" {
+  name     = "tf-task-stg-fe-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
+    path = "/"
   }
-
-  tags = merge(var.common_tags, {
-    Name        = "${var.project_name}-${var.environment}-tg"
-    Environment = var.environment
-  })
 }
 
+# Backend
+resource "aws_lb_target_group" "backend_tg" {
+  name     = "tf-task-stg-be-tg"
+  port     = 5000
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
 
-# LISTENER
+  health_check {
+    path = "/"
+  }
+}
+
+# ================= LISTENER =================
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.web_alb.arn
   port              = 80
   protocol          = "HTTP"
 
+  # Default → frontend
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app_tg.arn
+    target_group_arn = aws_lb_target_group.frontend_tg.arn
   }
 }
 
+# 🔥 API ROUTE → backend
+resource "aws_lb_listener_rule" "api_rule" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 1
 
-# LAUNCH TEMPLATE
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend_tg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+}
+
+# ================= LAUNCH TEMPLATE =================
+
 resource "aws_launch_template" "ec2_app_lt" {
   name_prefix   = "${var.project_name}-${var.environment}-app-"
   image_id      = var.ami
@@ -102,55 +105,59 @@ resource "aws_launch_template" "ec2_app_lt" {
   }
 
   network_interfaces {
-    security_groups = [var.ec2_sg_id]
+    security_groups             = [var.ec2_sg_id]
+    associate_public_ip_address = false
   }
+
+  user_data = base64encode(templatefile("${path.module}/userdata.script", {
+    rds_endpoint      = var.rds_endpoint
+    bucket_name       = var.bucket_name
+    region            = var.aws_region
+    redis_host        = var.redis_host
+    backend_repo_url  = var.backend_repo_url
+    frontend_repo_url = var.frontend_repo_url
+  }))
 
   tag_specifications {
     resource_type = "instance"
 
-    tags = merge(var.common_tags, {
-      Name        = "${var.project_name}-${var.environment}-app"
-      Environment = var.environment
-    })
+    tags = {
+      Name = "${var.project_name}-${var.environment}-app"
+    }
   }
-
-  tags = merge(var.common_tags, {
-    Name        = "${var.project_name}-${var.environment}-lt"
-    Environment = var.environment
-  })
 }
 
+# ================= AUTO SCALING =================
 
-# AUTO SCALING GROUP
 resource "aws_autoscaling_group" "web" {
   desired_capacity = 1
-  max_size         = 1
+  max_size         = 3
   min_size         = 1
 
   vpc_zone_identifier = var.private_subnet_ids
 
-  target_group_arns = [aws_lb_target_group.app_tg.arn]
+  # 🔥 BOTH TARGET GROUPS
+  target_group_arns = [
+    aws_lb_target_group.frontend_tg.arn,
+    aws_lb_target_group.backend_tg.arn
+  ]
 
   launch_template {
     id      = aws_launch_template.ec2_app_lt.id
     version = "$Latest"
   }
 
+  health_check_type = "ELB"
+
   tag {
     key                 = "Name"
     value               = "${var.project_name}-${var.environment}-app"
     propagate_at_launch = true
   }
-
-  tag {
-    key                 = "Environment"
-    value               = var.environment
-    propagate_at_launch = true
-  }
 }
 
+# ================= SCALING POLICY =================
 
-# AUTO SCALING POLICY
 resource "aws_autoscaling_policy" "cpu_target" {
   name                   = "${var.project_name}-${var.environment}-cpu-policy"
   autoscaling_group_name = aws_autoscaling_group.web.name

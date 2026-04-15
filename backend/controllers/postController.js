@@ -4,6 +4,32 @@ import redis, { ensureRedis } from "../config/redis.js";
 import { s3 } from "../config/s3.js";
 import Post from "../models/Post.js";
 
+const bucketName = process.env.BUCKET_NAME;
+const awsRegion = process.env.AWS_REGION || "ap-south-1";
+
+const buildImageUrl = (imageKey) => {
+  if (!imageKey) return null;
+
+  if (/^https?:\/\//i.test(imageKey)) {
+    return imageKey;
+  }
+
+  if (!bucketName) {
+    return imageKey;
+  }
+
+  return `https://${bucketName}.s3.${awsRegion}.amazonaws.com/${encodeURIComponent(imageKey).replace(/%2F/g, "/")}`;
+};
+
+const serializePost = (post) => {
+  const payload = post.toJSON ? post.toJSON() : { ...post };
+
+  return {
+    ...payload,
+    imageUrl: buildImageUrl(payload.image),
+  };
+};
+
 export const getPosts = async (req, res) => {
   try {
     console.log("👉 Request aayi");
@@ -36,18 +62,19 @@ export const getPosts = async (req, res) => {
     console.log("🐢 DB hit");
 
     const posts = await Post.findAll();
+    const serializedPosts = posts.map(serializePost);
 
     // ✅ Save cache (optional)
     if (isRedisAvailable && redis.isReady) {
       try {
-        await redis.setEx("posts", 60, JSON.stringify(posts));
+        await redis.setEx("posts", 60, JSON.stringify(serializedPosts));
       } catch {
         console.log("Redis write failed");
       }
     }
 
     // 🔥 ALWAYS SEND RESPONSE
-    res.json(posts);
+    res.json(serializedPosts);
 
   } catch (err) {
     console.error("❌ ERROR:", err);
@@ -64,23 +91,41 @@ export const createPost = async (req, res) => {
     }
 
     if (req.file?.buffer) {
-      const bucket = process.env.BUCKET_NAME;
+      const bucket = bucketName;
       if (!bucket) {
         return res.status(500).json({ message: "S3 bucket is not configured" });
       }
 
       const original = req.file.originalname || "upload";
       const ext = original.includes(".") ? `.${original.split(".").pop()}` : "";
-      const key = `uploads/${Date.now()}-${crypto.randomUUID()}${ext}`;
+      const fileName = `${Date.now()}-${crypto.randomUUID()}${ext}`;
+      const uploadKey = `uploads/${fileName}`;
+      const resizedKey = `resized/${fileName}`;
 
       await s3.send(
         new PutObjectCommand({
           Bucket: bucket,
-          Key: key,
+          Key: uploadKey,
           Body: req.file.buffer,
           ContentType: req.file.mimetype || "application/octet-stream",
         })
       );
+
+      const post = await Post.create({
+        title,
+        description,
+        image: resizedKey,
+      });
+
+      if (redis?.isReady) {
+        try {
+          await redis.del("posts");
+        } catch {
+          console.log("Redis cache clear failed");
+        }
+      }
+
+      return res.status(201).json(serializePost(post));
     }
 
     const post = await Post.create({
@@ -97,7 +142,7 @@ export const createPost = async (req, res) => {
       }
     }
 
-    return res.status(201).json(post);
+    return res.status(201).json(serializePost(post));
   } catch (err) {
     console.error("❌ ERROR:", err);
     return res.status(500).json({ error: err.message });

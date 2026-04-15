@@ -29,18 +29,18 @@ resource "aws_elasticache_parameter_group" "pg" {
 # ELASTICACHE CLUSTER (REDIS)
 
 resource "aws_elasticache_cluster" "ec" {
-  cluster_id           = var.cluster_id
-  engine               = var.cache_engine
-  engine_version       = var.cache_engine_version
-  port                 = var.port
+  cluster_id     = var.cluster_id
+  engine         = var.cache_engine
+  engine_version = var.cache_engine_version
+  port           = var.port
 
-  node_type            = var.node_type
-  num_cache_nodes      = var.num_cache_nodes
+  node_type       = var.node_type
+  num_cache_nodes = var.num_cache_nodes
 
   parameter_group_name = aws_elasticache_parameter_group.pg.name
   security_group_ids   = [var.ec_sg_id]
 
-  subnet_group_name    = aws_elasticache_subnet_group.ec_subnet.name  
+  subnet_group_name = aws_elasticache_subnet_group.ec_subnet.name
 
 
   tags = {

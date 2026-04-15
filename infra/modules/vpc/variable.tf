@@ -43,7 +43,7 @@ variable "db_subnets" {
   type = map(object({
     cidr = string
     az   = string
-    
+
   }))
 }
 

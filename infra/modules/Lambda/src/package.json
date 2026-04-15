@@ -1,0 +1,11 @@
+{
+  "name": "image-resizer-lambda",
+  "version": "1.0.0",
+  "private": true,
+  "description": "S3 image resize Lambda for the blogging application",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1693.0",
+    "sharp": "^0.34.4"
+  }
+}

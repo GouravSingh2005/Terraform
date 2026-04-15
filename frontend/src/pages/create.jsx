@@ -11,11 +11,16 @@ export default function Create() {
 
   const handleCreate = async () => {
     try {
+      if (!file) {
+        alert("Please choose an image first");
+        return;
+      }
+
       const formData = new FormData();
 
       formData.append("title", title);
       formData.append("description", description);
-      formData.append("image", file); // 🔥 file send
+      formData.append("image", file);
 
       await API.post("/posts", formData, {
         headers: {

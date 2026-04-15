@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 
 export default function PostCard({ post }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageSource = post.imageUrl || post.image || "https://picsum.photos/400";
+
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -12,9 +16,10 @@ export default function PostCard({ post }) {
         
         {/* IMAGE */}
         <img
-          src={post.image || "https://picsum.photos/400"}
+          src={imageFailed ? "https://picsum.photos/400" : imageSource}
           className="h-52 w-full object-cover"
           alt="post"
+          onError={() => setImageFailed(true)}
         />
 
         <CardContent className="p-4">

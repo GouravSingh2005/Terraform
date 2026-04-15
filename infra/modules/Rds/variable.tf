@@ -13,27 +13,32 @@ variable "environment" {
 }
 variable "db_name" {
   description = "Name of the database"
-  type = string
+  type        = string
 }
 variable "engine" {
   description = "Engine of the db"
-  type = string
+  type        = string
 }
 variable "engine_version" {
   description = "version of the engine"
-  type = string
+  type        = string
 }
 variable "instance_class" {
   description = "Instance class "
-  type = string
+  type        = string
 }
 variable "username" {
   description = "Username of the db"
-  type = string
+  type        = string
+}
+variable "db_password" {
+  description = "Password of the db"
+  type        = string
+  sensitive   = true
 }
 variable "aws_db_sg" {
   description = "security group of the db"
-  type=string
+  type        = string
 }
 variable "project_name" {
   description = "Project name"

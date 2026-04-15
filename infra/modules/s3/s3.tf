@@ -25,6 +25,15 @@ resource "aws_s3_bucket_ownership_controls" "ownership" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "public_access" {
+  bucket = aws_s3_bucket.my_bucket.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
 # BUCKET POLICY
 resource "aws_s3_bucket_policy" "bucket_policy" {
   bucket = aws_s3_bucket.my_bucket.id
@@ -47,6 +56,21 @@ data "aws_iam_policy_document" "allow_read_only_access" {
     resources = [
       aws_s3_bucket.my_bucket.arn,
       "${aws_s3_bucket.my_bucket.arn}/*"
+    ]
+  }
+
+  statement {
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = [
+      "s3:GetObject",
+    ]
+
+    resources = [
+      "${aws_s3_bucket.my_bucket.arn}/resized/*",
     ]
   }
 }

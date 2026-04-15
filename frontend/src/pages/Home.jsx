@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import PostCard from "@/components/PostCard";
+import API from "@/api/axios";
 
 export default function Home() {
   const [posts, setPosts] = useState([]);
@@ -11,8 +11,7 @@ export default function Home() {
 
   // 🔥 Backend call
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/posts")
+    API.get("/posts")
       .then((res) => {
         setPosts(res.data);
       })

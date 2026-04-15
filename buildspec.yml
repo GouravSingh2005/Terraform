@@ -4,20 +4,23 @@ phases:
   pre_build:
     commands:
       - echo Logging in to ECR
-      - aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com
+      - REGION="${AWS_DEFAULT_REGION:-ap-south-1}"
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
+      - echo Packaging Lambda resize function && cd infra/modules/Lambda/src && npm install --omit=dev && zip -qr ../function.zip index.js package.json package-lock.json node_modules && cd ../../../..
 
   build:
     commands:
       - echo Building backend
       - docker build -t backend ./backend
-      - docker tag backend:latest 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/backend:latest
+      - docker tag backend:latest "$ECR_BACKEND_REPOSITORY_URI:latest"
 
       - echo Building frontend
       - docker build -t frontend ./frontend
-      - docker tag frontend:latest 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/frontend:latest
+      - docker tag frontend:latest "$ECR_FRONTEND_REPOSITORY_URI:latest"
 
   post_build:
     commands:
       - echo Pushing images
-      - docker push 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/backend:latest
-      - docker push 585008053787.dkr.ecr.ap-southeast-1.amazonaws.com/frontend:latest
+      - docker push "$ECR_BACKEND_REPOSITORY_URI:latest"
+      - docker push "$ECR_FRONTEND_REPOSITORY_URI:latest"

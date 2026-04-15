@@ -1,6 +1,6 @@
 variable "bucket" {
   description = "name of bucket"
-  type = string
+  type        = string
 }
 variable "common_tags" {
   description = "Common tags for all resources"
