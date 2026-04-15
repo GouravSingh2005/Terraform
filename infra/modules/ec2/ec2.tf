@@ -34,31 +34,48 @@ resource "aws_lb" "web_alb" {
   load_balancer_type = "application"
   security_groups    = [var.alb_sg_id]
   subnets            = var.public_subnet_ids
+
+  enable_deletion_protection = false
+
+  access_logs {
+    bucket  = var.bucket_name
+    enabled = true
+  }
 }
 
 # ================= TARGET GROUPS =================
 
-# Frontend
+# Frontend TG
 resource "aws_lb_target_group" "frontend_tg" {
-  name     = "tf-task-stg-fe-tg"
+  name     = "${var.project_name}-${var.environment}-fe-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
   health_check {
-    path = "/"
+    path                = "/"
+    port                = "traffic-port"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
   }
 }
 
-# Backend
+# Backend TG
 resource "aws_lb_target_group" "backend_tg" {
-  name     = "tf-task-stg-be-tg"
+  name     = "${var.project_name}-${var.environment}-be-tg"
   port     = 5000
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
   health_check {
-    path = "/"
+    path                = "/api/health"   # 🔥 IMPORTANT
+    port                = "5000"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
   }
 }
 
@@ -76,7 +93,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# 🔥 API ROUTE → backend
+# API → backend
 resource "aws_lb_listener_rule" "api_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 1
@@ -106,10 +123,10 @@ resource "aws_launch_template" "ec2_app_lt" {
 
   network_interfaces {
     security_groups             = [var.ec2_sg_id]
-    associate_public_ip_address = false
+    associate_public_ip_address = false   # 🔥 ensure NAT gateway exists
   }
 
-  user_data = base64encode(templatefile("${path.module}/userdata.script", {
+  user_data = base64encode(templatefile("${path.module}/userdata.sh", {
     rds_endpoint      = var.rds_endpoint
     bucket_name       = var.bucket_name
     region            = var.aws_region
@@ -136,7 +153,6 @@ resource "aws_autoscaling_group" "web" {
 
   vpc_zone_identifier = var.private_subnet_ids
 
-  # 🔥 BOTH TARGET GROUPS
   target_group_arns = [
     aws_lb_target_group.frontend_tg.arn,
     aws_lb_target_group.backend_tg.arn
@@ -147,7 +163,8 @@ resource "aws_autoscaling_group" "web" {
     version = "$Latest"
   }
 
-  health_check_type = "ELB"
+  health_check_type         = "ELB"
+  health_check_grace_period = 120
 
   tag {
     key                 = "Name"
