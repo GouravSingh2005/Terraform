@@ -3,21 +3,20 @@
 # update
 apt update -y
 
-# install docker
+
 apt install -y docker.io
 systemctl start docker
 systemctl enable docker
 
-# install aws cli (stable way)
 snap install aws-cli --classic
 
-# add ubuntu user to docker group
+
 usermod -aG docker ubuntu
 
-# wait for aws cli (important)
+
 sleep 10
 
-# get account id
+
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION="${region}"
 export AWS_DEFAULT_REGION="$REGION"
