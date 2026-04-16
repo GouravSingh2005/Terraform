@@ -65,7 +65,7 @@ resource "aws_lb_target_group" "backend_tg" {
   vpc_id   = var.vpc_id
 
   health_check {
-    path                = "/api/health" # 🔥 IMPORTANT
+    path                = "/api/health" 
     port                = "5000"
     interval            = 30
     timeout             = 5
@@ -118,7 +118,7 @@ resource "aws_launch_template" "ec2_app_lt" {
 
   network_interfaces {
     security_groups             = [var.ec2_sg_id]
-    associate_public_ip_address = false # 🔥 ensure NAT gateway exists
+    associate_public_ip_address = false 
   }
 
   user_data = base64encode(templatefile("${path.module}/userdata.sh", {
