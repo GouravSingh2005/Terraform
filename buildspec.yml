@@ -7,8 +7,7 @@ phases:
       - REGION="${AWS_DEFAULT_REGION:-ap-south-1}"
       - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
-      - echo Packaging Lambda resize function && cd infra/modules/Lambda/src && npm install --omit=dev && zip -qr ../function.zip index.js package.json package-lock.json node_modules && cd ../../../..
-
+     
   build:
     commands:
       - echo Building backend
