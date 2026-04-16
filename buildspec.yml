@@ -7,7 +7,7 @@ phases:
       - REGION="${AWS_DEFAULT_REGION:-ap-south-1}"
       - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
-     
+
   build:
     commands:
       - echo Building backend
@@ -23,3 +23,27 @@ phases:
       - echo Pushing images
       - docker push "$ECR_BACKEND_REPOSITORY_URI:latest"
       - docker push "$ECR_FRONTEND_REPOSITORY_URI:latest"
+
+    
+      - echo "Deploying to EC2 via SSM"
+
+      - |
+        aws ssm send-command \
+          --document-name "AWS-RunShellScript" \
+          --targets "Key=tag:Name,Values=my-ec2" \
+          --parameters commands='[
+            "REGION='"$AWS_DEFAULT_REGION"'",
+            "ACCOUNT_ID='"$ACCOUNT_ID"'",
+
+            "aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com",
+
+            "docker rm -f backend || true",
+            "docker rm -f frontend || true",
+
+            "docker pull '"$ECR_BACKEND_REPOSITORY_URI"':latest",
+            "docker pull '"$ECR_FRONTEND_REPOSITORY_URI"':latest",
+
+            "docker run -d -p 5000:5000 --name backend '"$ECR_BACKEND_REPOSITORY_URI"':latest",
+            "docker run -d -p 80:80 --name frontend '"$ECR_FRONTEND_REPOSITORY_URI"':latest"
+          ]' \
+          --region "$AWS_DEFAULT_REGION"
