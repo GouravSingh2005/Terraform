@@ -1,6 +1,6 @@
-# ================================
+
 # IAM ROLE OUTPUTS
-# ================================
+
 
 output "ec2_role_name" {
   description = "Name of the EC2 IAM Role"
@@ -13,9 +13,8 @@ output "ec2_instance_profile_name" {
 }
 
 
-# ================================
+
 # LOAD BALANCER OUTPUTS
-# ================================
 
 output "alb_dns_name" {
   description = "DNS name of ALB"
@@ -28,9 +27,9 @@ output "alb_arn" {
 }
 
 
-# ================================
+
 # LAUNCH TEMPLATE OUTPUTS
-# ================================
+
 
 output "launch_template_id" {
   description = "Launch Template ID"
@@ -38,9 +37,9 @@ output "launch_template_id" {
 }
 
 
-# ================================
+
 # AUTO SCALING GROUP OUTPUTS
-# ================================
+
 
 output "asg_name" {
   description = "Auto Scaling Group Name"
@@ -53,9 +52,9 @@ output "asg_arn" {
 }
 
 
-# ================================
+
 # SCALING POLICY OUTPUT
-# ================================
+
 
 output "scaling_policy_name" {
   description = "Scaling Policy Name"
@@ -63,9 +62,9 @@ output "scaling_policy_name" {
 }
 
 
-# ================================
+
 # ELASTICACHE OUTPUTS
-# ================================
+
 
 output "elasticache_cluster_id" {
   description = "ElastiCache Cluster ID"
@@ -88,9 +87,8 @@ output "elasticache_parameter_group_name" {
 }
 
 
-# ================================
+
 # RDS OUTPUTS
-# ================================
 
 output "rds_endpoint" {
   description = "RDS endpoint"
@@ -113,9 +111,9 @@ output "rds_username" {
 }
 
 
-# ================================
+
 # S3 OUTPUTS
-# ================================
+
 
 output "s3_bucket_name" {
   description = "Name of the S3 bucket"
@@ -133,9 +131,8 @@ output "s3_bucket_id" {
 }
 
 
-# ================================
 # VPC OUTPUTS
-# ================================
+
 
 output "vpc_id" {
   description = "VPC ID"
