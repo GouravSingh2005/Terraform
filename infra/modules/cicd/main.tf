@@ -87,6 +87,11 @@ resource "aws_codebuild_project" "app_ci" {
 
   artifacts {
     type = "NO_ARTIFACTS"
+
+
+
+
+    
   }
 
   environment {

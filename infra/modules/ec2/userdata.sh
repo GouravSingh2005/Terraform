@@ -40,7 +40,7 @@ REDIS_PORT=6379
 
 JWT_SECRET=secret123
 
-# Additional vars for deployment scripts
+
 ACCOUNT_ID=$ACCOUNT_ID
 BACKEND_REPO_URL=${backend_repo_url}
 FRONTEND_REPO_URL=${frontend_repo_url}
