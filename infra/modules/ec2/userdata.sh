@@ -3,27 +3,28 @@
 # update
 apt update -y
 
-
+# install docker
 apt install -y docker.io
 systemctl start docker
 systemctl enable docker
-
-snap install aws-cli --classic
-
-
 usermod -aG docker ubuntu
 
+# install aws-cli
+snap install aws-cli --classic
 
-sleep 10
+# install ruby and wget for CodeDeploy agent
+apt install -y ruby-full wget
+cd /home/ubuntu
+wget https://aws-codedeploy-${region}.s3.${region}.amazonaws.com/latest/install
+chmod +x ./install
+./install auto
+systemctl start codedeploy-agent
+systemctl enable codedeploy-agent
 
-
+# Get Account ID
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-REGION="${region}"
-export AWS_DEFAULT_REGION="$REGION"
-BACKEND_REPO_URL="${backend_repo_url}"
-FRONTEND_REPO_URL="${frontend_repo_url}"
 
-# CREATE .env FILE
+# CREATE .env FILE with application configuration and ECR information
 cat <<EOF > /home/ubuntu/.env
 DB_HOST=${rds_endpoint}
 DB_PORT=3306
@@ -38,32 +39,11 @@ REDIS_HOST=${redis_host}
 REDIS_PORT=6379
 
 JWT_SECRET=secret123
+
+# Additional vars for deployment scripts
+ACCOUNT_ID=$ACCOUNT_ID
+BACKEND_REPO_URL=${backend_repo_url}
+FRONTEND_REPO_URL=${frontend_repo_url}
 EOF
 
-# login to ECR
-aws ecr get-login-password --region $REGION | \
-docker login --username AWS --password-stdin \
-$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
-
-# remove old containers
-docker rm -f backend || true
-docker rm -f frontend || true
-
-# pull latest images
-docker pull $BACKEND_REPO_URL:latest
-docker pull $FRONTEND_REPO_URL:latest
-
-# run backend
-docker run -d \
-  --name backend \
-  --restart always \
-  -p 5000:5000 \
-  --env-file /home/ubuntu/.env \
-  $BACKEND_REPO_URL:latest
-
-# run frontend
-docker run -d \
-  --name frontend \
-  --restart always \
-  -p 80:80 \
-  $FRONTEND_REPO_URL:latest
+chown ubuntu:ubuntu /home/ubuntu/.env

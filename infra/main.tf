@@ -94,7 +94,7 @@ module "cicd" {
 module "elastcache" {
   source = "./modules/elasticache"
 
-  private_subnet_ids   = module.vpc.private_subnet_ids
+  private_subnet_ids   = module.vpc.db_subnet_ids
   cache_engine_version = var.cache_engine_version
   cache_engine         = var.cache_engine
   node_type            = var.node_type
